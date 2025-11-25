@@ -1,0 +1,4 @@
+
+# Local-only files (keep out of remote)
+CLAUDE.md
+.claude/
