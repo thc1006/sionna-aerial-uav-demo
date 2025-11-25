@@ -1,0 +1,4 @@
+scenario_name,distance_m,carrier_freq_ghz,bandwidth_mhz,tx_power_dbm,noise_figure_db,snr_db,rsrp_dbm,throughput_mbps,backend,notes
+near,200.0,3.5,20.0,30.0,5.0,36.6477,N/A,19.9976,sionna_minimal,SISO Rayleigh+BPSK backend with Friis SNR estimate
+mid,500.0,3.5,20.0,30.0,5.0,28.6889,N/A,19.9915,sionna_minimal,SISO Rayleigh+BPSK backend with Friis SNR estimate
+far,1000.0,3.5,20.0,30.0,5.0,22.6683,N/A,19.9683,sionna_minimal,SISO Rayleigh+BPSK backend with Friis SNR estimate

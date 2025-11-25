@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-26T06:23:29.134147",
+    "phase": "Phase 0-1 Milestone",
+    "description": "UAV link simulation results using Sionna minimal backend"
+  },
+  "scenarios": [
+    {
+      "name": "near",
+      "config": {
+        "distance_m": 200.0,
+        "carrier_freq_ghz": 3.5,
+        "bandwidth_hz": 20000000.0,
+        "tx_power_dbm": 30.0,
+        "noise_figure_db": 5.0,
+        "tx_height_m": 25.0,
+        "ue_height_m": 120.0,
+        "seed": 42
+      },
+      "results": {
+        "snr_db": 36.64773924307505,
+        "rsrp_dbm": null,
+        "throughput_mbps": 19.99755859375
+      },
+      "backend": "sionna_minimal",
+      "notes": "SISO Rayleigh+BPSK backend with Friis SNR estimate"
+    },
+    {
+      "name": "mid",
+      "config": {
+        "distance_m": 500.0,
+        "carrier_freq_ghz": 3.5,
+        "bandwidth_hz": 20000000.0,
+        "tx_power_dbm": 30.0,
+        "noise_figure_db": 5.0,
+        "tx_height_m": 25.0,
+        "ue_height_m": 120.0,
+        "seed": 43
+      },
+      "results": {
+        "snr_db": 28.6889390696343,
+        "rsrp_dbm": null,
+        "throughput_mbps": 19.991455078125
+      },
+      "backend": "sionna_minimal",
+      "notes": "SISO Rayleigh+BPSK backend with Friis SNR estimate"
+    },
+    {
+      "name": "far",
+      "config": {
+        "distance_m": 1000.0,
+        "carrier_freq_ghz": 3.5,
+        "bandwidth_hz": 20000000.0,
+        "tx_power_dbm": 30.0,
+        "noise_figure_db": 5.0,
+        "tx_height_m": 25.0,
+        "ue_height_m": 120.0,
+        "seed": 44
+      },
+      "results": {
+        "snr_db": 22.668339156354676,
+        "rsrp_dbm": null,
+        "throughput_mbps": 19.96826171875
+      },
+      "backend": "sionna_minimal",
+      "notes": "SISO Rayleigh+BPSK backend with Friis SNR estimate"
+    }
+  ]
+}
