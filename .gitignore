@@ -1,4 +1,23 @@
 
 # Local-only files (keep out of remote)
 CLAUDE.md
+*SWE/*
 .claude/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Build artifacts
+*.zip
+logs/
+
+# Checkpoints (large files)
+checkpoints/

@@ -1,41 +1,32 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "uav-acar-sionna"
-version = "1.0.0"
-description = "UAV + ACAR Sionna integration - monorepo for link simulation, interference sensing, and beam management"
+version = "0.2.0"
+description = "Single-host orchestration for UAV-ACAR-Sionna pipeline (Phase 2 skeleton)"
+authors = [{name = "Ting-Yi (Hsiu-Chi Tsai)"}]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
-    "tensorflow>=2.13",
-    "numpy>=1.24",
-    "scipy>=1.11",
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "pydantic>=2.7",
+  "h5py>=3.10",
+  "fastapi>=0.109",
+  "uvicorn[standard]>=0.27",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "black>=24.0",
-    "ruff>=0.5.0",
-]
+dev = ["pytest", "pytest-cov", "mypy", "types-PyYAML"]
+train = ["torch>=2.2", "scikit-learn>=1.4"]
+sionna = ["tensorflow>=2.12", "sionna>=1.0.0", "sionna-rt>=1.0.0"]
 
-sionna = [
-    "sionna>=1.2.1",
-    "matplotlib>=3.8",
-]
-
-all = [
-    "tensorflow>=2.13",
-    "numpy>=1.24",
-    "scipy>=1.11",
-    "sionna>=1.2.1",
-    "matplotlib>=3.8",
-]
+[project.scripts]
+run_phase1_scenarios = "uav_acar_sionna.scripts.run_phase1_scenarios:main"
+run_emulation_once = "uav_acar_sionna.scripts.run_emulation_once:main"
+run_api = "uav_acar_sionna.api.main:run_server"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]

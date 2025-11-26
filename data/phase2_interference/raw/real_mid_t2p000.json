@@ -1,0 +1,15 @@
+{
+  "scenario_id": "real_mid",
+  "time_point": 2.0,
+  "distance_m": 500.0,
+  "carrier_freq_ghz": 3.5,
+  "bandwidth_hz": 20000000.0,
+  "tx_power_dbm": 30.0,
+  "noise_figure_db": 5.0,
+  "interference_power_db": 3.0,
+  "snr_db": 28.6889390696343,
+  "sinr_db": 25.6889390696343,
+  "ber": 0.00042724609375,
+  "backend": "sionna_link_minimal (SISO Rayleigh + BPSK)",
+  "note": "Real Sionna simulation with Friis path loss"
+}

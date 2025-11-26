@@ -1,83 +1,108 @@
-# Sionna–pyAerial UAV Demo (Phase 0–1)
+# UAV-ACAR-Sionna Phase 2 (single-host skeleton)
 
-This repository is a scaffold for experiments combining:
+This repo is a **single-host developer skeleton** for your UAV–ACAR–Sionna pipeline.
 
-- **NVIDIA Sionna / SionnaRT** for link- and system-level simulation.
-- **NVIDIA Aerial pyAerial** running inside the Aerial CUDA-Accelerated RAN (ACAR) container.
-- A future **beam management / interference-aware controller** for O-RAN (Phase 2+).
+It assumes you currently have only one machine (e.g. a DGX / RTX 4090 box), but
+you want the code to be **host-agnostic** so that in the future you can clone it
+onto multiple hosts (Blender host, Sionna/Orchestrator host, cuBB host, RU emulator host)
+without redesigning the repo.
 
-The current scope is **Phase 0–1 only**:
+Right now, everything runs on a *single* machine with logical host roles:
 
-1. **Phase 0 – Three distance cases (short / mid / far)**  
-   - Use Sionna (or an analytic free-space model as a placeholder) to simulate a single TX base station and a single UAV UE at three distances.  
-   - Export basic link metrics: RSRP, SNR and an approximate Shannon-capacity throughput.  
-   - Treat these as "test vectors" that will eventually be consumed by pyAerial / ACAR.
+- Host A (Blender / scene orchestrator)
+- Host B (SionnaRT + MATLAB + dataset writer + emulation orchestrator)
+- cuBB host (testMAC + cuPHY)
+- RU emulator host
 
-2. **Phase 1 – Interference-aware simulations & ML prep**  
-   - Extend to SionnaRT-based scenarios with interference (stubs are provided).  
-   - Read Sionna outputs via pyAerial (planned in `uav_acar_demo.aerial.py_aerial_interface`).  
-   - Validate that ACAR / pyAerial throughput under interference is consistent with Sionna's predictions.  
-   - Prepare datasets and simple neural models (dense + CNN) for later integration into ACAR.
+On this single machine, all four roles are collocated; we still keep them
+separate in code so that later you can move them to different boxes by changing
+environment variables and connection settings, instead of rewriting logic.
 
-The code here is intentionally minimal and designed to be completed using **Claude Code Opus 4.5**. It gives you a clean structure, configuration objects, basic physics for RSRP/SNR/throughput, and test scaffolding.
+## What is implemented in this skeleton?
 
-## Requirements
+This Phase 2 skeleton focuses on **Host B + cuBB/RU roles**:
 
-- Linux (Ubuntu 22.04 / 24.04 recommended)
-- NVIDIA RTX 4090 with recent drivers and CUDA toolkit
-- Python 3.10–3.12
-- Docker (for pyAerial / ACAR work)
-- Access to the **Aerial CUDA-Accelerated RAN** container and SDK (cuBB)
+- A minimal **orchestrator** that represents the steps
 
-Python-side dependencies are defined in `pyproject.toml` and include:
+  1. Ensure SionnaRT `.npz` exists for a given `(scenario_id, time_point)`.
+  2. Convert `.npz` to cuBB **TestVector `.h5`** via a MATLAB adapter (stub).
+  3. Copy the `.h5` into locations representing the cuBB host & RU emulator host.
+  4. Launch an emulation (currently stubbed) that produces a **throughput log**.
+  5. Append a row to `data/phase2_interference/summary.csv` that follows the
+     interference-aware dataset schema we designed.
 
-- `numpy`, `scipy`, `matplotlib`
-- `sionna` (PHY/SYS; SionnaRT optional)
-- `pytest` and a few dev tools
+- A small CLI:
 
-## Quickstart (host-side, Phase 0 only)
+  ```bash
+  # After installing in a virtualenv:
+  run_emulation_once --scenario-id uav_demo1 --time-point 1.0
+  ```
 
-```bash
-# 1) Create virtualenv
-python3 -m venv .venv
-source .venv/bin/activate
+  This currently uses **toy stubs** instead of واقعی Sionna / MATLAB / cuBB,
+  but the file layout and function boundaries are aligned with how you will
+  integrate the real tools.
 
-# 2) Install in editable mode with dev extras
-pip install -e .[dev]
+- A data layout under `data/`:
 
-# 3) Run the Phase 0 demo (short / mid / far UAV distances)
-python -m uav_acar_demo.cli phase0 --output-dir data/phase0
+  - `data/phase1/` – where you can drop the Phase 1 CSVs and plots.
+  - `data/phase2_interference/summary.csv` – one row per `(scenario_id, time_point)`.
+  - `data/phase2_interference/interferers.csv` – optional, one row per interferer
+    (not auto-populated yet, but schema is defined in code).
 
-# 4) Run tests
-pytest -q
-```
+- A tiny `tests/test_orchestrator_smoke.py` that exercises the orchestrator and
+  verifies that it writes a row into `summary.csv`. This gives Claude Code a
+  concrete test to keep passing while you swap the stubs for real integrations.
 
-This will generate a small JSON file under `data/phase0` with three scenarios and their RSRP/SNR/throughput. The numbers are produced by a free-space path loss model; the intent is that you later swap this for a proper Sionna channel model.
+## How to use this with Claude Code
 
-## pyAerial / ACAR integration (high-level)
+See **CLAUDE.md** for detailed instructions. Short version:
 
-pyAerial runs inside its own container, built from the **Aerial CUDA-Accelerated RAN** (ACAR) SDK. This repo assumes that:
+1. Create a virtualenv on your single machine (Linux recommended for Aerial):
 
-- You have followed NVIDIA's docs to obtain the ACAR container and cuBB SDK.
-- You can build and run the pyAerial container, mounting this repository as a volume.
-- You will implement the actual `run_throughput_eval_from_sionna(...)` logic in
-  `uav_acar_demo/aerial/py_aerial_interface.py` by calling pyAerial APIs or
-  cuPHY test-vector pipelines inside the container.
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install --upgrade pip
+   pip install -e .[dev]
+   ```
 
-For now, those functions are stubs with detailed docstrings describing the intended flow.
+2. Point Claude Code at this repo and ask it to:
 
-## Phase 1 (interference & ML) – what this scaffold gives you
+   - Replace the stub Sionna adapter with real SionnaRT calls.
+   - Replace the stub MATLAB adapter with calls that invoke your MATLAB scripts
+     to generate `.h5` TVs.
+   - Replace the stub cuBB adapter with scripts that launch testMAC + cuPHY +
+     RU emulator and parse the official throughput logs.
 
-- A place (`uav_acar_demo/sim/`) to add SionnaRT-based scene definitions and interference scenarios.
-- A small `uav_acar_demo/ml/models.py` module with ready-to-use Keras models:
-  - `build_dense_baseline(...)`
-  - `build_cnn_baseline(...)`
-- Test scaffolding under `tests/` so you can validate that your Sionna + pyAerial + ML plumbing is working as you iterate.
+3. As you scale out to multiple machines later, you can:
 
-## Working with Claude Code
+   - Set `UAV_ACAR_HOST_ROLE=orchestrator` on the box that runs SionnaRT + MATLAB.
+   - Set `UAV_ACAR_HOST_ROLE=cubb` on the cuBB host.
+   - Set `UAV_ACAR_HOST_ROLE=ru_emu` on the RU emulator host.
 
-- See **`CLAUDE.md`** for detailed instructions on how Claude Code should work in this repo.
-- Project slash-commands live under `.claude/commands/`.
-- A dedicated project Skill for this experiment lives under `.claude/skills/uav-sionna-pyaerial/`.
+   The `host_roles.py` module is designed so you can swap local filesystem calls
+   for SSH / REST calls without touching the higher-level orchestration logic.
 
-The goal is that you can open this repo in Claude Code, run `/help`, and immediately have a repeatable workflow for setting up the environment, running Phase 0, and gradually filling in the pyAerial / SionnaRT / RL pieces.
+## Where to plug in NVIDIA and Sionna tools
+
+- **SionnaRT / Sionna PHY**
+
+  Install the official Sionna / Sionna-RT packages and follow their
+  tutorials for generating ray-traced channels and CIR datasets.\
+  Sionna RT is the stand-alone ray tracing package of Sionna built on top of
+  Mitsuba 3 and interoperable with TensorFlow/PyTorch/JAX. 【sionna-rt docs】
+
+- **Aerial cuBB (testMAC, cuPHY, RU emulator)**
+
+  Set up the Aerial cuBB containers as per NVIDIA's documentation. cuPHY-CP
+  includes the built-in testMAC and RU emulator modules for end-to-end testing
+  of 5G L1/L2 with FAPI. 【Aerial cuBB docs】
+
+- **MATLAB TV generation**
+
+  NVIDIA provides official guidance on using MATLAB to generate test vectors
+  and launch patterns for cuPHY and cuBB. That is the natural place to connect
+  your `.npz` → `.h5` conversion step. 【Running Aerial cuPHY docs】
+
+For concrete links, look at the top comments inside the adapter modules
+(`sionna_adapter.py`, `matlab_adapter.py`, `cubb_adapter.py`).

@@ -1,0 +1,17 @@
+{
+  "scenario_id": "train_15",
+  "time_point": 1.5,
+  "distance_m": 850.0,
+  "carrier_freq_ghz": 3.5,
+  "bandwidth_hz": 20000000.0,
+  "tx_power_dbm": 30.0,
+  "noise_figure_db": 5.0,
+  "interference_power_db": 3.0,
+  "snr_db": 24.079960642068826,
+  "sinr_db": 21.079960642068826,
+  "ber": 0.00140380859375,
+  "num_subcarriers": 1333,
+  "subcarrier_spacing_hz": 15000.0,
+  "backend": "sionna_link_minimal (SISO Rayleigh + BPSK)",
+  "note": "Real Sionna simulation with Friis path loss and per-subcarrier SINR spectrum"
+}
