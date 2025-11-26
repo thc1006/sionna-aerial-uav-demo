@@ -1,23 +1,65 @@
+# ===========================================
+# UAV-ACAR-Sionna .gitignore
+# ===========================================
 
-# Local-only files (keep out of remote)
+# Local Claude Code configuration (user-specific)
 CLAUDE.md
 *SWE/*
 .claude/
 
 # Python
 .venv/
+venv/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+*.egg
 *.egg-info/
+dist/
+build/
+.eggs/
 
 # IDE
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
 # Build artifacts
 *.zip
+*.tar.gz
+
+# Logs (regeneratable)
 logs/
 
-# Checkpoints (large files)
+# Model checkpoints (large, regeneratable via uav-train)
 checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Secrets (never commit!)
+.env
+*.pem
+*.key
+credentials*.json

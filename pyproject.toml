@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uav-acar-sionna"
-version = "0.2.0"
-description = "Single-host orchestration for UAV-ACAR-Sionna pipeline (Phase 2 skeleton)"
+version = "0.3.0"
+description = "UAV-ACAR-Sionna pipeline: Sionna channel simulation → pyAerial/cuBB integration"
 authors = [{name = "Ting-Yi (Hsiu-Chi Tsai)"}]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 dependencies = [
   "numpy>=1.24",
   "pandas>=2.0",
@@ -16,17 +16,45 @@ dependencies = [
   "h5py>=3.10",
   "fastapi>=0.109",
   "uvicorn[standard]>=0.27",
+  "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "mypy", "types-PyYAML"]
-train = ["torch>=2.2", "scikit-learn>=1.4"]
-sionna = ["tensorflow>=2.12", "sionna>=1.0.0", "sionna-rt>=1.0.0"]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "mypy>=1.8",
+  "ruff>=0.3",
+]
+train = [
+  "torch>=2.2",
+  "scikit-learn>=1.4",
+]
+sionna = [
+  "tensorflow>=2.15,<2.18",
+  "nvidia-cuda-nvcc-cu12",
+]
+all = [
+  "uav-acar-sionna[dev,train,sionna]",
+]
 
 [project.scripts]
-run_phase1_scenarios = "uav_acar_sionna.scripts.run_phase1_scenarios:main"
-run_emulation_once = "uav_acar_sionna.scripts.run_emulation_once:main"
-run_api = "uav_acar_sionna.api.main:run_server"
+uav-train = "uav_acar_sionna.ml.train:main"
+uav-api = "uav_acar_sionna.api.main:run_server"
+uav-emulate = "uav_acar_sionna.scripts.run_emulation_once:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]

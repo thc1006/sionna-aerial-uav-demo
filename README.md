@@ -1,108 +1,207 @@
-# UAV-ACAR-Sionna Phase 2 (single-host skeleton)
+# UAV-ACAR-Sionna
 
-This repo is a **single-host developer skeleton** for your UAV–ACAR–Sionna pipeline.
+**Sionna → pyAerial → ACAR pipeline for UAV link simulations**
 
-It assumes you currently have only one machine (e.g. a DGX / RTX 4090 box), but
-you want the code to be **host-agnostic** so that in the future you can clone it
-onto multiple hosts (Blender host, Sionna/Orchestrator host, cuBB host, RU emulator host)
-without redesigning the repo.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-14%20passed-brightgreen.svg)](#testing)
 
-Right now, everything runs on a *single* machine with logical host roles:
+## Overview
 
-- Host A (Blender / scene orchestrator)
-- Host B (SionnaRT + MATLAB + dataset writer + emulation orchestrator)
-- cuBB host (testMAC + cuPHY)
-- RU emulator host
+This repository implements a complete pipeline for UAV (Unmanned Aerial Vehicle) communication link simulation and emulation:
 
-On this single machine, all four roles are collocated; we still keep them
-separate in code so that later you can move them to different boxes by changing
-environment variables and connection settings, instead of rewriting logic.
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Sionna    │ ──▶ │   Sionna     │ ──▶ │   MATLAB    │ ──▶ │    cuBB     │
+│  (Channel)  │     │   Adapter    │     │  (TestVec)  │     │  (Emulate)  │
+└─────────────┘     └──────────────┘     └─────────────┘     └─────────────┘
+                           │                                        │
+                           ▼                                        ▼
+                    ┌──────────────┐                         ┌─────────────┐
+                    │  ML Models   │                         │  Throughput │
+                    │  (PyTorch)   │                         │    BLER     │
+                    └──────────────┘                         └─────────────┘
+```
 
-## What is implemented in this skeleton?
+## Project Status
 
-This Phase 2 skeleton focuses on **Host B + cuBB/RU roles**:
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 0 | ✅ Complete | Three-distance simulation (near/mid/far) |
+| Phase 1 | ✅ Complete | Sionna backend with Rayleigh fading |
+| Phase 2 | ✅ Complete | Single-host skeleton (ML + API + Dataset) |
+| Phase 3 | 🔄 Ready | Docker/NGC integration (requires permissions) |
 
-- A minimal **orchestrator** that represents the steps
+## Quick Start
 
-  1. Ensure SionnaRT `.npz` exists for a given `(scenario_id, time_point)`.
-  2. Convert `.npz` to cuBB **TestVector `.h5`** via a MATLAB adapter (stub).
-  3. Copy the `.h5` into locations representing the cuBB host & RU emulator host.
-  4. Launch an emulation (currently stubbed) that produces a **throughput log**.
-  5. Append a row to `data/phase2_interference/summary.csv` that follows the
-     interference-aware dataset schema we designed.
+### 1. Clone and Setup
 
-- A small CLI:
+```bash
+git clone https://github.com/thc1006/sionna-aerial-uav-demo.git
+cd sionna-aerial-uav-demo
 
-  ```bash
-  # After installing in a virtualenv:
-  run_emulation_once --scenario-id uav_demo1 --time-point 1.0
-  ```
+# Full setup (includes TensorFlow/Sionna + GPU check + model training)
+./scripts/setup.sh
 
-  This currently uses **toy stubs** instead of واقعی Sionna / MATLAB / cuBB,
-  but the file layout and function boundaries are aligned with how you will
-  integrate the real tools.
+# Or quick setup (skip GPU dependencies, faster)
+./scripts/setup.sh --quick
 
-- A data layout under `data/`:
+# Or Phase 3 setup (includes Docker/NGC checks)
+./scripts/setup.sh --phase3
+```
 
-  - `data/phase1/` – where you can drop the Phase 1 CSVs and plots.
-  - `data/phase2_interference/summary.csv` – one row per `(scenario_id, time_point)`.
-  - `data/phase2_interference/interferers.csv` – optional, one row per interferer
-    (not auto-populated yet, but schema is defined in code).
+### 2. Activate Environment
 
-- A tiny `tests/test_orchestrator_smoke.py` that exercises the orchestrator and
-  verifies that it writes a row into `summary.csv`. This gives Claude Code a
-  concrete test to keep passing while you swap the stubs for real integrations.
+```bash
+source .venv/bin/activate
+```
 
-## How to use this with Claude Code
+### 3. Run Tests
 
-See **CLAUDE.md** for detailed instructions. Short version:
+```bash
+pytest tests/
+# Expected: 14 passed
+```
 
-1. Create a virtualenv on your single machine (Linux recommended for Aerial):
+### 4. Train ML Models
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install --upgrade pip
-   pip install -e .[dev]
-   ```
+```bash
+# Train FC model (tabular features → throughput)
+uav-train --model fc --epochs 100 --device cuda
 
-2. Point Claude Code at this repo and ask it to:
+# Or with CPU
+uav-train --model fc --epochs 100 --device cpu
+```
 
-   - Replace the stub Sionna adapter with real SionnaRT calls.
-   - Replace the stub MATLAB adapter with calls that invoke your MATLAB scripts
-     to generate `.h5` TVs.
-   - Replace the stub cuBB adapter with scripts that launch testMAC + cuPHY +
-     RU emulator and parse the official throughput logs.
+### 5. Start REST API
 
-3. As you scale out to multiple machines later, you can:
+```bash
+uav-api
+# Server runs at http://localhost:8000
+# API docs at http://localhost:8000/docs
+```
 
-   - Set `UAV_ACAR_HOST_ROLE=orchestrator` on the box that runs SionnaRT + MATLAB.
-   - Set `UAV_ACAR_HOST_ROLE=cubb` on the cuBB host.
-   - Set `UAV_ACAR_HOST_ROLE=ru_emu` on the RU emulator host.
+## API Endpoints
 
-   The `host_roles.py` module is designed so you can swap local filesystem calls
-   for SSH / REST calls without touching the higher-level orchestration logic.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/emulate` | POST | Run single emulation |
+| `/results` | GET | List simulation results |
 
-## Where to plug in NVIDIA and Sionna tools
+Example:
+```bash
+curl -X POST http://localhost:8000/emulate \
+  -H "Content-Type: application/json" \
+  -d '{"scenario_id": "test", "distance_m": 500}'
+```
 
-- **SionnaRT / Sionna PHY**
+## Project Structure
 
-  Install the official Sionna / Sionna-RT packages and follow their
-  tutorials for generating ray-traced channels and CIR datasets.\
-  Sionna RT is the stand-alone ray tracing package of Sionna built on top of
-  Mitsuba 3 and interoperable with TensorFlow/PyTorch/JAX. 【sionna-rt docs】
+```
+sionna-aerial-uav-demo/
+├── src/uav_acar_sionna/
+│   ├── api/              # FastAPI REST endpoints
+│   ├── ml/               # PyTorch models (FCRegressor, CNN1D)
+│   ├── orchestrator/     # Sionna/MATLAB/cuBB adapters
+│   ├── config.py         # Configuration dataclasses
+│   └── sionna_backend.py # Sionna channel simulation
+├── tests/                # pytest test suite (14 tests)
+├── data/
+│   ├── phase1/           # Phase 1 results
+│   └── phase2_interference/  # Phase 2 datasets (summary.csv, npz, h5)
+├── docker/               # Phase 3 Docker setup
+│   ├── docker-compose.yml
+│   └── Dockerfile.orchestrator
+├── scripts/
+│   ├── setup.sh          # One-click setup
+│   └── ngc_login.sh      # NGC authentication
+└── pyproject.toml        # Dependencies & config
+```
 
-- **Aerial cuBB (testMAC, cuPHY, RU emulator)**
+## ML Models
 
-  Set up the Aerial cuBB containers as per NVIDIA's documentation. cuPHY-CP
-  includes the built-in testMAC and RU emulator modules for end-to-end testing
-  of 5G L1/L2 with FAPI. 【Aerial cuBB docs】
+| Model | Input | Target | Performance |
+|-------|-------|--------|-------------|
+| FCRegressor | distance, SNR, SINR | throughput_mbps | **R²=0.89** |
+| CNN1D | channel data (4×4096) | throughput_mbps | Needs real channel data |
 
-- **MATLAB TV generation**
+## Phase 3: Docker Deployment
 
-  NVIDIA provides official guidance on using MATLAB to generate test vectors
-  and launch patterns for cuPHY and cuBB. That is the natural place to connect
-  your `.npz` → `.h5` conversion step. 【Running Aerial cuPHY docs】
+### Prerequisites
 
-For concrete links, look at the top comments inside the adapter modules
-(`sionna_adapter.py`, `matlab_adapter.py`, `cubb_adapter.py`).
+1. Docker with GPU support (NVIDIA Container Toolkit)
+2. NGC CLI and API key
+3. Access to `nvidia/aerial` NGC organization
+
+### Setup
+
+```bash
+# 1. Setup with Phase 3 dependencies
+./scripts/setup.sh --phase3
+
+# 2. Login to NGC and pull containers
+./scripts/ngc_login.sh
+
+# 3. Start services
+cd docker/
+docker-compose up -d
+docker-compose logs -f
+```
+
+## Development
+
+```bash
+# Install all dependencies
+pip install -e ".[all]"
+
+# Run tests with verbose output
+pytest tests/ -v
+
+# Type checking (optional)
+mypy src/
+
+# Linting (optional)
+ruff check src/
+```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UAV_ACAR_HOST_ROLE` | `single` | Host role (single/orchestrator/cubb/ru_emu) |
+| `CUDA_VISIBLE_DEVICES` | auto | GPU selection |
+| `XLA_FLAGS` | auto | TensorFlow XLA configuration |
+
+## Troubleshooting
+
+### TensorFlow XLA Error (`libdevice not found`)
+```bash
+pip install nvidia-cuda-nvcc-cu12
+```
+The `tests/conftest.py` automatically configures XLA_FLAGS.
+
+### Docker Permission Denied
+```bash
+sudo usermod -aG docker $USER
+newgrp docker  # or logout/login
+```
+
+### NGC Login Failed
+```bash
+ngc config set  # Re-configure credentials
+docker login nvcr.io -u '$oauthtoken' -p <your-api-key>
+```
+
+## Using with Claude Code
+
+1. Clone this repo on your target machine
+2. Copy `CLAUDE.md.template` to `CLAUDE.md` and customize
+3. Run `./scripts/setup.sh` to initialize
+4. Ask Claude Code to continue Phase 3 integration
+
+## References
+
+- [Sionna Documentation](https://nvlabs.github.io/sionna/)
+- [NVIDIA Aerial SDK](https://developer.nvidia.com/aerial-sdk)
+- [PyTorch](https://pytorch.org/)
+- [FastAPI](https://fastapi.tiangolo.com/)
